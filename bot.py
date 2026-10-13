@@ -9,6 +9,7 @@ from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
 load_dotenv()
 
+DB_PATH=/app/data/howmanydays.db
 DB = os.getenv("DB_PATH", "howmanydays.db")
 TZ = ZoneInfo("Asia/Singapore")
 
