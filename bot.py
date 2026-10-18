@@ -349,7 +349,7 @@ async def leaderboard(update, context):
 
 async def start(update, context):
     print("Received /start command!")
-    await update.message.reply_text("Hello! HowManyDaysBot is working!")
+    await update.message.reply_text("Hello!")
 
 def main():
     token = os.environ["TELEGRAM_BOT_TOKEN"]
