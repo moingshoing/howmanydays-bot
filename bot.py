@@ -53,6 +53,17 @@ def init_db():
             """
         )
 
+        columns = [
+            row[1]
+            for row in db.execute("PRAGMA table_info(mentions)")
+        ]
+
+        if "last_mentioned" not in columns:
+            db.execute("""
+                ALTER TABLE mentions
+                ADD COLUMN last_mentioned TEXT
+            """)
+
 async def send(update, message):
     await update.effective_message.reply_text(message)
 
@@ -123,7 +134,23 @@ async def howmanydaysto(update, context):
     await event_days(update, context, "to")
 
 async def howmanydayssince(update, context):
-    await event_days(update, context, "since")
+    if not context.args:
+        return await send(update, "Usage: /howmanydayssince <keyword>")
+
+    keyword = " ".join(context.args).lower()
+    chat_id = update.effective_chat.id
+
+    with connect_db() as db:
+        exists = db.execute(
+            """
+            SELECT 1 FROM keywords 
+            WHERE chat_id = ? AND keyword = ?
+        """, (chat_id, keyword)).fetchone()
+
+        if not exists:
+            return await send(
+                update, f"'{keyword}' not found."
+            )
 
 async def addkeyword(update, context):
     if len(context.args) < 1:
@@ -170,17 +197,20 @@ async def zerodayssince(update, context):
         db.execute(
             """
             INSERT INTO mentions (
-                chat_id, keyword, username, mention_count
+                chat_id, keyword, username, 
+                mention_count, last_mentioned
             )
-            VALUES (?, ?, ?, 1)
+            VALUES (?, ?, ?, 1, ?)
             ON CONFLICT(chat_id, keyword, username)
             DO UPDATE SET
-                mention_count = mentions.mention_count + 1
+                mention_count = mentions.mention_count + 1,
+                last_mentioned = excluded.last_mentioned
             """,
             (
                 chat_id,
                 keyword,
                 username,
+                today().isoformat()
             )
         )
 
