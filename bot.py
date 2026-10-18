@@ -152,6 +152,26 @@ async def howmanydayssince(update, context):
                 update, f"'{keyword}' not found."
             )
 
+        results = db.execute("""
+            SELECT MAX(last_mentioned)
+            FROM mentions
+            WHERE chat_id = ? AND keyword = ?
+        """, (chat_id, keyword)).fetchone()
+
+        if not results or results[0] is None:
+            return await send(
+                update, 
+                f"No last mention for '{keyword}'."
+            )
+
+        last_mentioned = date.fromisoformat(results[0])
+        days = (today() - last_mentioned).days
+
+        await send(
+            update,
+            f"{days} days since '{keyword}' was mentioned"
+        )
+
 async def addkeyword(update, context):
     if len(context.args) < 1:
         return await send(update, "Usage: /addkeyword <keyword>")
