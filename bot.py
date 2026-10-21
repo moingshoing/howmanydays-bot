@@ -214,6 +214,24 @@ async def zerodayssince(update, context):
         if not exists:
             return await send(update, f"{keyword} not found")
 
+        # Get previous mention date across all users
+        result = db.execute(
+            """
+            SELECT MAX(last_mentioned)
+            FROM mentions
+            WHERE chat_id = ? AND keyword = ?
+            """, (chat_id, keyword)
+        ).fetchone()
+
+        last_mentioned = result[0]
+
+        if last_mentioned:
+            previous_streak = (
+                today() - date.fromisoformat(last_mentioned)
+            ).days
+        else:
+            previous_streak = None
+
         db.execute(
             """
             INSERT INTO mentions (
@@ -241,11 +259,17 @@ async def zerodayssince(update, context):
             """,
             (chat_id, keyword, username),
         ).fetchone()[0]
-    
+
+    if previous_streak is None:
+        streak_message = "Congrats on being the first one to mention!"
+    else:
+        streak_message = f"Previous streak: {previous_streak} days"
+        
     await send(
         update, 
-        f"0 days since @{username} mentioned '{keyword}'"
-        f" (Total mentions: {count})"
+        f"0 days since '{keyword}' mentioned!\n"
+        f"{streak_message}\n"
+        f"@{username} has mentioned it {count} times."
     )
 
 async def viewall(update, context):
